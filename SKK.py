@@ -5,7 +5,7 @@ from tensorflow.keras.optimizers import Adam, Nadam
 from tensorflow.keras.metrics import *
 from tensorflow.keras.losses import binary_crossentropy
 from tensorflow.keras.layers import Concatenate
-
+import tensorflow as tf 
 def SKK(inputs, channel, code, ratio=8):
 
     shared_layer_one = Dense(channel//ratio,
@@ -48,6 +48,7 @@ def SKK(inputs, channel, code, ratio=8):
     assert max_pool.shape[1:] == (1,1,channel)
     
     embedding = Add()([max_pool,avg_pool])
+    embedding = Gamma()(embedding)
     embedding = Activation('sigmoid')(embedding)
     
     res = Lambda(lambda x:1-x)(embedding)
@@ -63,3 +64,23 @@ def SKK(inputs, channel, code, ratio=8):
     ans = Add()([conv1,conv2])
     
     return ans
+    
+ 
+ 
+class Focal(tf.keras.layers.Layer):
+
+    def __init__(self):
+        super(Gamma, self).__init__()
+
+    def build(self, input_shape):
+        initializer = tf.keras.initializers.Ones()
+
+        self.w = self.add_weight(
+            shape=(1,1),
+            initializer=initializer,
+            trainable=True,
+            constraint= tf.keras.constraints.NonNeg())
+
+    def call(self, inputs):
+        inputs = tf.clip_by_value(inputs, tf.keras.backend.epsilon(), 1.)
+        return (inputs)**self.w
